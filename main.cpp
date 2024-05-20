@@ -210,8 +210,8 @@ int main(int argc, char** argv) {
   if(argc == 3){
     std::string output_file = "../results/output.csv";
     bool exists = std::filesystem::exists(output_file);
-    std::string filename = argv[2];
-    int n = atoi(argv[1]);
+    std::string filename = argv[1];
+    int n = atoi(argv[2]);
     std::ofstream of(output_file, std::ios_base::out | std::ios_base::app);
     if(!exists){
       BenchMarkResult::output_csv_header(of);
