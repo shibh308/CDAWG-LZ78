@@ -189,6 +189,7 @@ struct BenchMarkResultForCompression{
     of << filename << ",";
     of << text_length << ",";
     of << num_iter << ",";
+    of << substr_length << ",";
     of << "\"[" << memory_usage_ma[0];
     for(int i = 1; i < memory_usage_ma.size(); ++i){
       of << "," << memory_usage_ma[i];
