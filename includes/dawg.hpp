@@ -197,7 +197,6 @@ struct SimpleCDAWG{
       to_and_labels.emplace_back(to, length, label);
     }
     std::sort(to_and_labels.begin(), to_and_labels.end());
-    // to de sort suru no ga mazui
     for(auto [to, length, label] : to_and_labels){
       root_coming_edges.emplace_back(to, length);
       root_coming_edge_labels.emplace_back(label);

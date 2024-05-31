@@ -9,17 +9,19 @@
 using random_access_func_type = const std::function<int(int)>;
 using sa_range_func_type = const std::function<std::pair<int,int>(int,int)>;
 //template<typename random_access_func_type, typename sa_range_func_type>
-std::pair<std::vector<std::pair<int,unsigned char>>, size_t> compute_lz78(int n, random_access_func_type random_access_func, sa_range_func_type sa_range_func){
+std::pair<std::vector<std::pair<int,unsigned char>>, size_t> compute_lz78(int n, int lt, int rt, random_access_func_type random_access_func, sa_range_func_type sa_range_func){
 
   std::vector<std::pair<int,unsigned char>> phrases;
   MarkedAncestor ma(n);
 
-  for(int i = 0, k = 0; i < n; ++k){
+  for(int i = lt, k = 0; i < rt; ++k){
     auto [ls, rs] = sa_range_func(i, n - i);
-
     assert(rs - ls == 1);
     auto [mark_depth, phrase_id] = ma.get_mark(ls);
-    if(i + mark_depth == n){
+    if(i + mark_depth >= rt){
+      for(int t = 0; t < i + mark_depth - rt; ++t){
+        phrase_id = phrases[phrase_id].first;
+      }
       phrases.emplace_back(phrase_id, '\0');
       break;
     }
