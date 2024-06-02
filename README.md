@@ -1,12 +1,17 @@
 # CDAWG-LZ78
 
+This repository contains the implementation and benchmark script for LZ78 substring compression on a CDAWG.
+
 ## Download the text files
 `./download_files.sh` downloads three text files (`sources`, `dna`, and `english`) from the [Pizza&Chilli corpus](http://pizzachili.dcc.uchile.cl/) and
 extract the first 128MiB of each text.
 
-## Compilation
-
-CMake is available (detailed information: TODO)
+## Build
+You can use [cmake](https://cmake.org/) to code the code.
+```
+cmake .
+make
+```
 
 ## Benchmark
 
