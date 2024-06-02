@@ -263,7 +263,8 @@ void benchmark_compression(std::string filename, size_t length, int num_iter, st
     return scdawg.climb_linear(start_pos, target_depth).first;
   };
 
-  std::mt19937 mt(42);
+  std::random_device seed;
+  std::mt19937 mt(seed());
   for(int compress_length = 1 << 3; compress_length <= n; compress_length <<= 1){
     std::vector<std::size_t> memory_usage_ma;
     std::vector<std::size_t> elapsed_times;
