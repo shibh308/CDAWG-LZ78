@@ -2,9 +2,9 @@
 
 This repository contains the implementation and benchmark script for LZ78 substring compression on a CDAWG.
 
-## Download the Text Files
-Run `./prepare_files.sh` to download three text files (`sources`, `dna`, and `english`) from the [Pizza&Chilli corpus](http://pizzachili.dcc.uchile.cl/) and
-extract the first 128MiB of each text.
+## Prepare the Text Files
+You can use `./prepare_files.sh` to prepare the dataset.
+This script will download three text files (`sources`, `dna`, and `english`) from the [Pizza&Chilli corpus](http://pizzachili.dcc.uchile.cl/), create fibonacchi string file (`fib`), and extract the first 128MiB of each text.
 
 ## Build
 
