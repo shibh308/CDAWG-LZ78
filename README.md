@@ -3,11 +3,15 @@
 This repository contains the implementation and benchmark script for LZ78 substring compression on a CDAWG.
 
 ## Download the Text Files
-Run `./download_files.sh` to download three text files (`sources`, `dna`, and `english`) from the [Pizza&Chilli corpus](http://pizzachili.dcc.uchile.cl/) and
+Run `./prepare_files.sh` to download three text files (`sources`, `dna`, and `english`) from the [Pizza&Chilli corpus](http://pizzachili.dcc.uchile.cl/) and
 extract the first 128MiB of each text.
 
 ## Build
+
 You can use [cmake](https://cmake.org/) to build the code.
+This project requires [sdsl](https://github.com/simongog/sdsl-lite/tree/master).
+You should install sdsl and set `SDSL_INCLUDE_DIR` and `SDSL_LIBRARY_DIR` in `CMakeLists.txt`
+After completing the above steps, you can build the project using the following commands:
 ```
 cmake .
 make

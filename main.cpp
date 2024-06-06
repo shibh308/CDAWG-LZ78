@@ -8,6 +8,7 @@
 #include "includes/dawg.hpp"
 #include "includes/suffix_array.hpp"
 #include "includes/lz78.hpp"
+#include "includes/sdsl_suffixtree.hpp"
 
 std::string load_file(const std::string& data_path, std::size_t length_limit){
   std::clog << "loading: " << data_path << std::endl;
@@ -96,18 +97,34 @@ std::vector<std::pair<int,unsigned char>> compute_lz78_by_CDAWG(std::string& tex
   return compute_lz78(text.length(), 0, text.length(), random_access_func, sa_range_func).first;
 }
 
+template<typename SuffixTree>
+std::vector<std::pair<int,unsigned char>> compute_lz78_by_SuffixTree(std::string& text){
+  std::clog << "Computing LZ78 by SuffixTree..." << std::endl;
+  auto st = SuffixTree(text);
+  auto random_access_func = [&](int i){ return st.random_access(i); };
+  auto sa_range_func = [&](int start_pos, int target_depth){
+    return st.sa_range(start_pos, target_depth);
+  };
+
+  return compute_lz78(text.length(), 0, text.length(), random_access_func, sa_range_func).first;
+}
+
+template<typename SuffixTree>
 void check_correctness(std::string& text){
   CDAWGBase cdawg(text);
   HeavyPathDecomposedCDAWG hp_cdawg(cdawg);
   SimpleCDAWG scdawg(cdawg);
+  SuffixTree st(text);
   for(int i = 0; i < text.length(); ++i){
     std::clog << "start: " << i << std::endl;
     for(int j = 0; i + j <= text.length(); ++j){
       auto a = hp_cdawg.climb_linear(i, j);
       auto b = scdawg.climb_linear(i, j).first;
       auto c = hp_cdawg.climb_log2(i, j);
+      auto d = st.sa_range(i, j);
       assert(a == b);
       assert(a == c);
+      assert(a == d);
     }
   }
 }
@@ -174,7 +191,7 @@ struct BenchMarkResultForCompression{
     std::clog << "number of iterations    : " << num_iter << std::endl;
     std::clog << "length of substring     : " << substr_length << std::endl;
     std::clog << "average memory usage    : " << std::accumulate(memory_usage_ma.begin(), memory_usage_ma.end(), 0.0l) / memory_usage_ma.size() << " [bytes]" << std::endl;
-    std::clog << "average elapsed time    : " << std::accumulate(elapsed_times.begin(), elapsed_times.end(), 0.0l) / elapsed_times.size() << " [micorseconds]" << std::endl;
+    std::clog << "average elapsed time    : " << std::accumulate(elapsed_times.begin(), elapsed_times.end(), 0.0l) / elapsed_times.size() << " [microseconds]" << std::endl;
   }
   static void output_csv_header(std::ofstream& of){
     of << "filename" << ",";
@@ -195,6 +212,45 @@ struct BenchMarkResultForCompression{
       of << "," << memory_usage_ma[i];
     }
     of << "]\"" << ",";
+    of << "\"[" << elapsed_times[0];
+    for(int i = 1; i < elapsed_times.size(); ++i){
+      of << "," << elapsed_times[i];
+    }
+    of << "]\"" << std::endl;
+  }
+};
+
+
+struct BenchMarkResultForCompressionSuffixTree{
+  std::string filename;
+  int text_length;
+  int num_iter, substr_length;
+  std::size_t memory_usage_st;
+  std::vector<std::size_t> elapsed_times;
+  void output_clog(){
+    std::clog << std::endl;
+    std::clog << "filename                : " << filename << std::endl;
+    std::clog << "text length             : " << text_length << std::endl;
+    std::clog << "number of iterations    : " << num_iter << std::endl;
+    std::clog << "length of substring     : " << substr_length << std::endl;
+    std::clog << "memory usage            : " << memory_usage_st << " [bytes]" << std::endl;
+    std::clog << "average elapsed time    : " << std::accumulate(elapsed_times.begin(), elapsed_times.end(), 0.0l) / elapsed_times.size() << " [microseconds]" << std::endl;
+  }
+  static void output_csv_header(std::ofstream& of){
+    of << "filename" << ",";
+    of << "text_length" << ",";
+    of << "num_iter" << ",";
+    of << "substr_length" << ",";
+    of << "memory_usage_st" << ",";
+    of << "elapsed_time_lz78" << std::endl;
+  }
+  void output_csv(std::ofstream& of){
+    of << std::fixed;
+    of << filename << ",";
+    of << text_length << ",";
+    of << num_iter << ",";
+    of << substr_length << ",";
+    of << memory_usage_st << ",";
     of << "\"[" << elapsed_times[0];
     for(int i = 1; i < elapsed_times.size(); ++i){
       of << "," << elapsed_times[i];
@@ -247,6 +303,50 @@ void benchmark_construction(std::string filename, size_t length, std::ofstream& 
   res.output_csv(of);
 }
 
+template<typename SuffixTree>
+void benchmark_compression_suffixtree(std::string filename, size_t length, int num_iter, std::ofstream& of){
+  auto text = load_file("./data/" + filename, length);
+
+  int n = text.length();
+
+  sdsl::memory_monitor::start();
+
+  auto st = SuffixTree(text);
+
+  text.clear();
+
+  auto random_access_func = [&](int i){ return st.random_access(i); };
+  auto sa_range_func = [&](int start_pos, int target_depth){
+    return st.sa_range(start_pos, target_depth);
+  };
+
+  std::size_t memory_usage = st.memory_usage();
+
+  std::random_device seed;
+  std::mt19937 mt(seed());
+  for(int compress_length = 1 << 3; compress_length <= n; compress_length <<= 1){
+    std::vector<std::size_t> elapsed_times;
+    for(int k = 0; k < num_iter; ++k){
+      int start_index = mt() % (n - compress_length + 1);
+      int end_index = start_index + compress_length;
+      auto time_st = std::chrono::high_resolution_clock::now();
+      compute_lz78(n, start_index, end_index, random_access_func, sa_range_func).second;
+      auto time_en = std::chrono::high_resolution_clock::now();
+      auto computation_time = std::chrono::duration_cast<std::chrono::microseconds>(time_en - time_st).count();
+      elapsed_times.emplace_back(computation_time);
+    }
+    BenchMarkResultForCompressionSuffixTree res;
+    res.filename = filename;
+    res.num_iter = num_iter;
+    res.text_length = n;
+    res.substr_length = compress_length;
+    res.memory_usage_st = memory_usage;
+    res.elapsed_times = elapsed_times;
+    res.output_clog();
+    res.output_csv(of);
+  }
+}
+
 
 void benchmark_compression(std::string filename, size_t length, int num_iter, std::ofstream& of){
   auto text = load_file("./data/" + filename, length);
@@ -288,12 +388,16 @@ void benchmark_compression(std::string filename, size_t length, int num_iter, st
     res.output_clog();
     res.output_csv(of);
   }
-
 }
 
 
 
 int main(int argc, char** argv) {
+
+#ifndef DEBUG
+//  std::string err_msg = "expected args: \n    \"construct {filename} {text_length}\"\n or \"compress_cdawg {filename} {text_length}\"\n or \"compress_nst {filename} {text_length}\"\n or \"compress_sst {filename} {text_length}\"";
+
+  std::string msg = "expected args: \n    \"construct {filename} {text_length}\"\n or \"compress_cdawg {filename} {text_length}\"\n or \"compress_st {filename} {text_length}\"";
 
   if(argc == 4){
     if(strcmp(argv[1], "construct") == 0){
@@ -307,8 +411,8 @@ int main(int argc, char** argv) {
       }
       benchmark_construction(filename, n, of);
     }
-    else if(strcmp(argv[1], "compress") == 0){
-      std::string output_file = "./results/output_compress.csv";
+    else if(strcmp(argv[1], "compress_cdawg") == 0){
+      std::string output_file = "./results/output_compress_cdawg.csv";
       bool exists = std::filesystem::exists(output_file);
       std::string filename = argv[2];
       int n = atoi(argv[3]);
@@ -318,44 +422,80 @@ int main(int argc, char** argv) {
       }
       benchmark_compression(filename, n, 10, of);
     }
-    else{
-      std::clog << "expected args: \"construct {filename} {text_length}\" or \"compress {filename} {text_length}\"" << std::endl;
+    else if(strcmp(argv[1], "compress_st") == 0){
+      std::string output_file = "./results/output_compress_suffixtree.csv";
+      bool exists = std::filesystem::exists(output_file);
+      std::string filename = argv[2];
+      int n = atoi(argv[3]);
+      std::ofstream of(output_file, std::ios_base::out | std::ios_base::app);
+      if(!exists){
+        BenchMarkResultForCompressionSuffixTree::output_csv_header(of);
+      }
+      benchmark_compression_suffixtree<NormalSuffixTree>(filename, n, 10, of);
     }
-    std::exit(0);
+//    else if(strcmp(argv[1], "compress_sst") == 0){
+//      std::string output_file = "./results/output_compress_suffixtree.csv";
+//      bool exists = std::filesystem::exists(output_file);
+//      std::string filename = argv[2];
+//      int n = atoi(argv[3]);
+//      std::ofstream of(output_file, std::ios_base::out | std::ios_base::app);
+//      if(!exists){
+//        BenchMarkResultForCompressionSuffixTree::output_csv_header(of);
+//      }
+//      benchmark_compression_suffixtree<SuccinctSuffixTree>(filename, n, 10, of);
+//    }
+    else{
+      std::clog << msg << std::endl;
+    }
   }
   else{
-    std::clog << "expected args: \"construct {filename} {text_length}\" or \"compress {filename} {text_length}\"" << std::endl;
-    std::exit(0);
+    std::clog << msg << std::endl;
   }
 
+#else
+  {
+    auto text = load_file("./data/dna", 100);
 
+    assert(is_valid_text(text));
+    std::clog << "text length: " << text.length() << std::endl;
+    text += '\1';
 
-  auto text = load_file("./data/sources", 10000000); // 1024 * 1024 * 10);
+    auto lz78 = compute_lz78_by_suffix_array(text);
+    auto lz78_2 = compute_lz78_by_SuffixTree<NormalSuffixTree>(text);
 
-//  text = "baabaab" + std::string(1000, 'a') + "b";
-  std::clog << "text length: " << text.length() << std::endl;
-//  text = "aabaab";
-  assert(is_valid_text(text));
-  text += '\1';
+    std::cout << text << std::endl;
 
-  auto lz78_2 = compute_lz78_by_CDAWG(text);
-  auto lz78 = compute_lz78_by_suffix_array(text);
+    check_correctness<SuccinctSuffixTree>(text);
 
-  assert(lz78 == lz78_2);
-
-  std::vector<std::string> v;
-  for(auto [k, pre] : lz78){
-    std::string s;
-    if(k != -1){
-      s += v[k];
+    std::vector<std::string> v;
+    for(auto [k, pre] : lz78){
+      std::string s;
+      if(k != -1){
+        s += v[k];
+      }
+      if(pre){
+        s += pre;
+      }
+      v.emplace_back(s);
     }
-    if(pre){
-      s += pre;
+    for(auto x : v)std::cout << x << " ";
+    std::cout << std::endl;
+    v.clear();
+    for(auto [k, pre] : lz78_2){
+      std::string s;
+      if(k != -1){
+        s += v[k];
+      }
+      if(pre){
+        s += pre;
+      }
+      v.emplace_back(s);
     }
-    v.emplace_back(s);
+    for(auto x : v)std::cout << x << " ";
+    std::cout << std::endl;
+    assert(lz78 == lz78_2);
   }
-//  for(auto x : v)std::cout << x << " ";
-//  std::cout << std::endl;
+#endif
 
   return 0;
 }

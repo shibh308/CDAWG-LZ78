@@ -5,6 +5,8 @@ curl -o data/sources.gz https://pizzachili.dcc.uchile.cl//texts/code/sources$DOW
 curl -o data/english.gz https://pizzachili.dcc.uchile.cl//texts/nlang/english$DOWNLOAD_SIZE.gz
 curl -o data/dna.gz https://pizzachili.dcc.uchile.cl//texts/dna/dna$DOWNLOAD_SIZE.gz
 
+python3 python/generate_fib.py > ./data/fib
+
 (
 cd data
 gzip -d sources.gz
