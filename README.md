@@ -13,7 +13,7 @@ This project requires [sdsl](https://github.com/simongog/sdsl-lite/tree/master).
 You should install sdsl and set `SDSL_INCLUDE_DIR` and `SDSL_LIBRARY_DIR` in `CMakeLists.txt`
 After completing the above steps, you can build the project using the following commands:
 ```
-cmake .
+cmake . -DCMAKE_BUILD_TYPE=Release
 make
 ```
 
@@ -26,6 +26,7 @@ To run all benchmarks, use the following script:
 
 To run only the compression or construction benchmarks, use the corresponding scripts:
 ```
-./run_benchmark_compression.sh {path_to_executable} {filename} 
-./run_benchmark_construction.sh {path_to_executable} {filename} 
+./run_benchmark_construction.sh {path_to_executable} {filename}
+./run_benchmark_compression_cdawg.sh {path_to_executable} {filename}
+./run_benchmark_compression_suffixtree.sh {path_to_executable} {filename}
 ```
