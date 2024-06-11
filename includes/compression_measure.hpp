@@ -1,5 +1,5 @@
-#ifndef CDAWG_LZ78_COMPUTE_LZ_LENGTH_HPP
-#define CDAWG_LZ78_COMPUTE_LZ_LENGTH_HPP
+#ifndef CDAWG_LZ78_COMPRESSION_MEASURE_HPP
+#define CDAWG_LZ78_COMPRESSION_MEASURE_HPP
 
 
 #include "sdsl_suffixtree.hpp"
@@ -61,5 +61,20 @@ int compute_lz78_length(NormalSuffixTree& st){
   return k;
 }
 
+int compute_RLBWT_length(std::string& text){
+  sdsl::csa_wt csa;
+  construct_im(csa, text, 1);
+  int r = 0;
+  int p = -1;
+  int n = csa.bwt.size();
+  for(int i = 0; i < n; ++i){
+    int b = csa.bwt[i];
+    if(p != b){
+      ++r;
+      p = b;
+    }
+  }
+  return r;
+}
 
-#endif //CDAWG_LZ78_COMPUTE_LZ_LENGTH_HPP
+#endif //CDAWG_LZ78_COMPRESSION_MEASURE_HPP

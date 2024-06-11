@@ -19,7 +19,7 @@ add_executable(CDAWG_LZ78 main.cpp
         includes/biasedsearchtree.hpp
         includes/sdsl_suffixtree.hpp
         includes/utils.hpp
-        includes/compute_lz_length.hpp
+        includes/compression_measure.hpp
         includes/waveletmatrix.hpp
 )
 

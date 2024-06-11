@@ -5,7 +5,7 @@
 #include <bitset>
 #include "suffix_array.hpp"
 #include "dawg.hpp"
-#include "compute_lz_length.hpp"
+#include "compression_measure.hpp"
 
 std::string load_file(const std::string& data_path, std::size_t length_limit){
   std::clog << "loading: " << data_path << std::endl;
@@ -40,6 +40,8 @@ void compute_compression_measures(std::string filename, int length){
     }
     return e;
   }();
+  std::clog << "computing r..." << std::endl;
+  int r = compute_RLBWT_length(text);
   std::clog << "constructing SA..." << std::endl;
   text += '\1';
   SALCP sa(text);
@@ -49,8 +51,8 @@ void compute_compression_measures(std::string filename, int length){
   int z77 = compute_lz77_length(st, sa.sa);
   std::clog << "computing lz78..." << std::endl;
   int z78 = compute_lz78_length(st);
-  std::cout << "filename,n,sigma,e,lz77,lz78\n";
-  std::cout << filename << "," << n << "," << sigma << "," << e << "," << z77 << "," << z78 << std::endl;
+  std::cout << "filename,n,sigma,e,r,lz77,lz78\n";
+  std::cout << filename << "," << n << "," << sigma << "," << e << "," << r << "," << z77 << "," << z78 << std::endl;
 }
 
 
