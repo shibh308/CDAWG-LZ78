@@ -1,7 +1,6 @@
 #ifndef CDAWG_LZ78_SUFFIX_ARRAY_HPP
 #define CDAWG_LZ78_SUFFIX_ARRAY_HPP
 
-#endif //CDAWG_LZ78_SUFFIX_ARRAY_HPP
 
 #include <string>
 #include <vector>
@@ -115,7 +114,6 @@ struct SALCP{
   }
   template<bool USE_LCP>
   int lower_bound(std::string& t, int st, int en){
-
     if(USE_LCP){
       // todo: O(en-st + log n) time solution with <O(n),O(1)> RmQ and LCP table
     }
@@ -138,3 +136,5 @@ struct SALCP{
     return res;
   }
 };
+
+#endif //CDAWG_LZ78_SUFFIX_ARRAY_HPP

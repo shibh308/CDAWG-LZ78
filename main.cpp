@@ -9,21 +9,8 @@
 #include "includes/suffix_array.hpp"
 #include "includes/lz78.hpp"
 #include "includes/sdsl_suffixtree.hpp"
+#include "includes/utils.hpp"
 
-std::string load_file(const std::string& data_path, std::size_t length_limit){
-  std::clog << "loading: " << data_path << std::endl;
-  std::ifstream file(data_path);
-  assert(file.is_open());
-  std::string text;
-  text.resize(length_limit);
-  file.read(&text[0], length_limit);
-  std::size_t read_bytes = file.gcount();
-  if(read_bytes != length_limit){
-    text.resize(read_bytes);
-  }
-  std::clog << "Loading file \"" << data_path << "\" is finished." << std::endl;
-  return text;
-}
 
 bool is_valid_text(std::string_view text){
   for(auto c : text){
@@ -69,9 +56,6 @@ std::vector<std::pair<int,unsigned char>> compute_lz78_by_suffix_array(std::stri
   auto random_access_func = [&](int i){ return text[i]; };
   SALCP sa(text);
   auto sa_range_func = [&](int start_pos, int target_depth){
-
-    // i=58, k =36, 3275, 3279
-
     int lb = sa.lower_bound<false>(text, start_pos, start_pos + target_depth);
     int rb = sa.upper_bound<false>(text, start_pos, start_pos + target_depth);
     return std::make_pair(lb, rb);
@@ -397,7 +381,7 @@ int main(int argc, char** argv) {
 #ifndef DEBUG
 //  std::string err_msg = "expected args: \n    \"construct {filename} {text_length}\"\n or \"compress_cdawg {filename} {text_length}\"\n or \"compress_nst {filename} {text_length}\"\n or \"compress_sst {filename} {text_length}\"";
 
-  std::string msg = "expected args: \n    \"construct {filename} {text_length}\"\n or \"compress_cdawg {filename} {text_length}\"\n or \"compress_st {filename} {text_length}\"";
+  std::string msg = "expected args: \n    \"construct {filename} {text_length}\"\n or \"compress_cdawg {filename} {text_length}\"\n or \"compress_st {filename} {text_length}\" or \"compression_measure {filename} {text_length}\"";
 
   if(argc == 4){
     if(strcmp(argv[1], "construct") == 0){
@@ -433,6 +417,11 @@ int main(int argc, char** argv) {
       }
       benchmark_compression_suffixtree<NormalSuffixTree>(filename, n, 10, of);
     }
+    else if(strcmp(argv[1], "compression_measure") == 0){
+      std::string filename = argv[2];
+      int n = atoi(argv[3]);
+      compute_compression_measures(filename, n);
+    }
 //    else if(strcmp(argv[1], "compress_sst") == 0){
 //      std::string output_file = "./results/output_compress_suffixtree.csv";
 //      bool exists = std::filesystem::exists(output_file);
@@ -465,7 +454,7 @@ int main(int argc, char** argv) {
 
     std::cout << text << std::endl;
 
-    check_correctness<SuccinctSuffixTree>(text);
+    check_correctness<NormalSuffixTree>(text);
 
     std::vector<std::string> v;
     for(auto [k, pre] : lz78){

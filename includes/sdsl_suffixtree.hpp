@@ -52,13 +52,13 @@ struct NormalSuffixTree{
       if(it.visit() == 1){
         auto v = *it;
         int depth = st.depth(v);
-        while(!stack.empty() && depth <= stack.back().second)stack.pop_back();
+        sa_ranges[i] = { st.lb(v) - 1, st.rb(v) };
+        depths[i] = depth;
+        while(!stack.empty() && sa_ranges[stack.back().first].second < sa_ranges[i].second)stack.pop_back();
         if(!stack.empty()){
           int parent = stack.back().first;
           parents[i] = parent;
         }
-        depths[i] = depth;
-        sa_ranges[i] = { st.lb(v) - 1, st.rb(v) };
         stack.emplace_back(i, depth);
         if(st.is_leaf(v)){
           if(depth != 1){
@@ -94,6 +94,9 @@ struct NormalSuffixTree{
         break;
       }
       node = parent;
+    }
+    if(node == 0){
+      return {0, n};
     }
     return sa_ranges[node];
   }

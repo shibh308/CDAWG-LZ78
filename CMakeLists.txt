@@ -18,6 +18,9 @@ add_executable(CDAWG_LZ78 main.cpp
         includes/markedancestor.hpp
         includes/biasedsearchtree.hpp
         includes/sdsl_suffixtree.hpp
+        includes/utils.hpp
+        includes/compute_lz_length.hpp
+        includes/waveletmatrix.hpp
 )
 
 target_link_libraries(CDAWG_LZ78 divsufsort divsufsort64 sdsl)
