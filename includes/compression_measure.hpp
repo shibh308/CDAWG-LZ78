@@ -6,11 +6,9 @@
 #include "waveletmatrix.hpp"
 
 int compute_lz77_length(NormalSuffixTree& st, std::vector<int>& sa){
-  // SA range min
   int n = st.text.size();
   assert(n < 1 << 28);
   WaveletMatrix<int, 28> wm(sa);
-
   int i = 0;
   int k = 0;
   while(++k, i < n){
@@ -35,7 +33,6 @@ int compute_lz77_length(NormalSuffixTree& st, std::vector<int>& sa){
 }
 
 int compute_lz78_length(NormalSuffixTree& st){
-  // SA range min
   int n = st.text.size();
   std::vector<int> lz78_depth(st.parents.size(), 0);
   int i = 0;
