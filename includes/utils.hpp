@@ -34,9 +34,11 @@ void compute_compression_measures(std::string filename, int length){
   std::clog << "computing e..." << std::endl;
   int e = [&](){
     int e = 0;
-    CDAWGBase cdawg(text);
-    for(auto& node : cdawg.nodes){
-      e += node.ch.size();
+    DAWGBase dawg(text);
+    for(auto& node : dawg.nodes){
+      if(node.ch.size() != 1){
+        e += node.ch.size();
+      }
     }
     return e;
   }();

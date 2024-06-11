@@ -45,7 +45,7 @@ struct NormalSuffixTree{
   NormalSuffixTree(std::string& s) : n(s.size()), depths(2 * n), parents(2 * n, -1), sa_ranges(2 * n), text(s), leaves(n + 1){
     sdsl::cst_sct3<> st;
     construct_im(st, s, 1);
-    std::vector<std::pair<int,int>> stack;
+    std::vector<int> stack;
     std::vector<std::tuple<int, unsigned char, int>> children;
     int i = 0;
     for(auto it = st.begin(); it != st.end(); ++it){
@@ -54,12 +54,11 @@ struct NormalSuffixTree{
         int depth = st.depth(v);
         sa_ranges[i] = { st.lb(v) - 1, st.rb(v) };
         depths[i] = depth;
-        while(!stack.empty() && sa_ranges[stack.back().first].second < sa_ranges[i].second)stack.pop_back();
+        while(!stack.empty() && sa_ranges[stack.back()].second < sa_ranges[i].second)stack.pop_back();
         if(!stack.empty()){
-          int parent = stack.back().first;
-          parents[i] = parent;
+          parents[i] = stack.back();
         }
-        stack.emplace_back(i, depth);
+        stack.emplace_back(i);
         if(st.is_leaf(v)){
           if(depth != 1){
             leaves[n - (depth - 1)] = i;
