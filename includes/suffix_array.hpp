@@ -78,7 +78,7 @@ struct SALCP{
     induced_sort(new_lms);
     return ret;
   }
-  SALCP(const std::string& s) : str(s.begin(), s.end()){
+  SALCP(const std::string& s, bool construct_isa = true, bool construct_lcp = true) : str(s.begin(), s.end()){
     assert(s.back() == '\1');
 
     int m = *std::max_element(str.begin(), str.end());
@@ -87,9 +87,13 @@ struct SALCP{
 //    std::iota(s2.begin(), s2.end(), 0);
 //    std::sort(s2.begin(), s2.end(), [&](auto i, auto j){ return s.substr(i) < s.substr(j); });
 //    assert(sa == s2);
-    rev.resize(str.size());
-    for(int i = 0; i < str.size(); ++i) rev[sa[i]] = i;
-    build_lcp();
+    if(construct_isa){
+      rev.resize(str.size());
+      for(int i = 0; i < str.size(); ++i) rev[sa[i]] = i;
+    }
+    if(construct_lcp){
+      build_lcp();
+    }
   }
   void build_lcp(){
     int n = str.size();

@@ -46,7 +46,7 @@ void compute_compression_measures(std::string filename, int length){
   int r = compute_RLBWT_length(text);
   std::clog << "constructing SA..." << std::endl;
   text += '\1';
-  SALCP sa(text);
+  SALCP sa(text, false, false);
   std::clog << "constructing ST..." << std::endl;
   NormalSuffixTree st(text);
   std::clog << "computing lz77..." << std::endl;
