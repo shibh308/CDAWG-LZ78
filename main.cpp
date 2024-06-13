@@ -374,6 +374,22 @@ void benchmark_compression(std::string filename, size_t length, int num_iter, st
   }
 }
 
+void write_lz78_length_array(std::string filename, int length, int num_iter){
+  auto text = load_file("./data/" + filename, length);
+  int n = text.length();
+  std::clog << "constructing ST..." << std::endl;
+  NormalSuffixTree st(text);
+  std::random_device seed;
+  std::mt19937 mt(seed());
+  for(int k = 0; k < num_iter; ++k){
+    std::clog << "iteration " << k << std::endl;
+    int start_index = mt() % n;
+    auto res = compute_lz78_length_array(st, start_index);
+    std::ofstream ofs("./results/lz78_length/" + filename + "_" + std::to_string(n) + "_" + std::to_string(start_index), std::ios_base::out | std::ios_base::binary);
+    ofs.write(reinterpret_cast<const char *>(res.data()), sizeof(int) * res.size());
+    ofs.close();
+  }
+}
 
 
 int main(int argc, char** argv) {
@@ -381,7 +397,7 @@ int main(int argc, char** argv) {
 #ifndef DEBUG
 //  std::string err_msg = "expected args: \n    \"construct {filename} {text_length}\"\n or \"compress_cdawg {filename} {text_length}\"\n or \"compress_nst {filename} {text_length}\"\n or \"compress_sst {filename} {text_length}\"";
 
-  std::string msg = "expected args: \n    \"construct {filename} {text_length}\"\n or \"compress_cdawg {filename} {text_length}\"\n or \"compress_st {filename} {text_length}\"\n or \"compression_measure {filename} {text_length}\"";
+  std::string msg = "expected args: \n    \"construct {filename} {text_length}\"\n or \"compress_cdawg {filename} {text_length}\"\n or \"compress_st {filename} {text_length}\"\n or \"compression_measure {filename} {text_length}\"\n or \"lz78_length_array {filename} {text_length}\"";
 
   if(argc == 4){
     if(strcmp(argv[1], "construct") == 0){
@@ -421,6 +437,11 @@ int main(int argc, char** argv) {
       std::string filename = argv[2];
       int n = atoi(argv[3]);
       compute_compression_measures(filename, n);
+    }
+    else if(strcmp(argv[1], "lz78_length_array") == 0){
+      std::string filename = argv[2];
+      int n = atoi(argv[3]);
+      write_lz78_length_array(filename, n, 10);
     }
 //    else if(strcmp(argv[1], "compress_sst") == 0){
 //      std::string output_file = "./results/output_compress_suffixtree.csv";

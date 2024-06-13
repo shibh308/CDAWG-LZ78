@@ -58,6 +58,34 @@ int compute_lz78_length(NormalSuffixTree& st){
   return k;
 }
 
+std::vector<int> compute_lz78_length_array(NormalSuffixTree& st, int start_pos){
+  int n = st.text.size();
+  std::vector<int> length;
+  length.reserve(n - start_pos);
+  std::vector<int> lz78_depth(st.parents.size(), 0);
+  int i = start_pos;
+  while(i < n){
+    int node = st.leaves[i];
+    while(true){
+      if(lz78_depth[node] != 0){
+        ++lz78_depth[node];
+        i += lz78_depth[node];
+        length.emplace_back(lz78_depth[node]);
+        break;
+      }else{
+        if(st.depths[st.parents[node]] == lz78_depth[st.parents[node]]){
+          lz78_depth[node] = st.depths[st.parents[node]] + 1;
+          i += lz78_depth[node];
+          length.emplace_back(lz78_depth[node]);
+          break;
+        }
+        node = st.parents[node];
+      }
+    }
+  }
+  return length;
+}
+
 int compute_RLBWT_length(std::string& text){
   sdsl::csa_wt csa;
   construct_im(csa, text, 1);
