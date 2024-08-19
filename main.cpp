@@ -114,6 +114,36 @@ void check_correctness(std::string& text){
 }
 
 
+struct BenchMarkResultForConstructionTime{
+  std::string filename;
+  int text_length, num_vertices, num_edges;
+  double elapsed_time;
+  std::vector<int> num_iter_bins;
+  void output_clog(){
+    std::clog << std::endl;
+    std::clog << "filename                : " << filename << std::endl;
+    std::clog << "text length             : " << text_length << std::endl;
+    std::clog << "number of vertices      : " << num_vertices << std::endl;
+    std::clog << "number of edges         : " << num_edges << std::endl;
+    std::clog << "elapsed time (LZ78)     : " << elapsed_time << " [ms]" << std::endl;
+  }
+  static void output_csv_header(std::ofstream& of){
+    of << "filename" << ",";
+    of << "text_length" << ",";
+    of << "num_vertices" << ",";
+    of << "num_edges" << ",";
+    of << "elapsed_time_lz78" << ",";
+  }
+  void output_csv(std::ofstream& of){
+    of << std::fixed;
+    of << filename << ",";
+    of << text_length << ",";
+    of << num_vertices << ",";
+    of << num_edges << ",";
+    of << elapsed_time << std::endl;
+  }
+};
+
 struct BenchMarkResultForConstruction{
   std::string filename;
   int text_length, num_vertices, num_edges;
@@ -242,6 +272,31 @@ struct BenchMarkResultForCompressionSuffixTree{
     of << "]\"" << std::endl;
   }
 };
+
+void benchmark_construction_time(std::string filename, size_t length, std::ofstream& of){
+  auto text = load_file("./data/" + filename, length);
+
+  int n = text.length();
+
+  auto time_st = std::chrono::high_resolution_clock::now();
+  auto scdawg = [&](){
+    CDAWGBase cdawg(text);
+    text.clear();
+    return SimpleCDAWG(cdawg);
+  }();
+  auto time_en = std::chrono::high_resolution_clock::now();
+  auto computation_time = std::chrono::duration_cast<std::chrono::milliseconds>(time_en - time_st).count();
+
+  BenchMarkResultForConstructionTime res;
+  res.filename = filename;
+  res.text_length = n;
+  res.num_vertices = scdawg.node_length.size();
+  res.num_edges = scdawg.parents.size();
+  res.elapsed_time = computation_time;
+
+  res.output_clog();
+  res.output_csv(of);
+}
 
 void benchmark_construction(std::string filename, size_t length, std::ofstream& of){
   auto text = load_file("./data/" + filename, length);
@@ -397,7 +452,7 @@ int main(int argc, char** argv) {
 #ifndef DEBUG
 //  std::string err_msg = "expected args: \n    \"construct {filename} {text_length}\"\n or \"compress_cdawg {filename} {text_length}\"\n or \"compress_nst {filename} {text_length}\"\n or \"compress_sst {filename} {text_length}\"";
 
-  std::string msg = "expected args: \n    \"construct {filename} {text_length}\"\n or \"compress_cdawg {filename} {text_length}\"\n or \"compress_st {filename} {text_length}\"\n or \"compression_measure {filename} {text_length}\"\n or \"lz78_length_array {filename} {text_length}\"";
+  std::string msg = "expected args: \n    \"construct {filename} {text_length}\"\n or \"construct_time {filename} {text_length}\"\n or \"compress_cdawg {filename} {text_length}\"\n or \"compress_st {filename} {text_length}\"\n or \"compression_measure {filename} {text_length}\"\n or \"lz78_length_array {filename} {text_length}\"";
 
   if(argc == 4){
     if(strcmp(argv[1], "construct") == 0){
@@ -410,6 +465,17 @@ int main(int argc, char** argv) {
         BenchMarkResultForConstruction::output_csv_header(of);
       }
       benchmark_construction(filename, n, of);
+    }
+    else if(strcmp(argv[1], "construct_time") == 0){
+      std::string output_file = "./results/output_construct_time.csv";
+      bool exists = std::filesystem::exists(output_file);
+      std::string filename = argv[2];
+      int n = atoi(argv[3]);
+      std::ofstream of(output_file, std::ios_base::out | std::ios_base::app);
+      if(!exists){
+        BenchMarkResultForConstructionTime::output_csv_header(of);
+      }
+      benchmark_construction_time(filename, n, of);
     }
     else if(strcmp(argv[1], "compress_cdawg") == 0){
       std::string output_file = "./results/output_compress_cdawg.csv";
