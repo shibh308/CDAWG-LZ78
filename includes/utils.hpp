@@ -53,8 +53,10 @@ void compute_compression_measures(std::string filename, int length){
   int z77 = compute_lz77_length(st, sa.sa);
   std::clog << "computing lz78..." << std::endl;
   int z78 = compute_lz78_length(st);
-  std::cout << "filename,n,sigma,e,r,lz77,lz78\n";
-  std::cout << filename << "," << n << "," << sigma << "," << e << "," << r << "," << z77 << "," << z78 << std::endl;
+  std::clog << "computing lz78sl..." << std::endl;
+  auto [z78sl, z78slins] = compute_lz78_slink_trie_size(st);
+  std::cout << "filename,n,sigma,e,r,lz77,lz78,lz78sl,lz78slins\n";
+  std::cout << filename << "," << n << "," << sigma << "," << e << "," << r << "," << z77 << "," << z78 << "," << z78sl << "," << z78slins << std::endl;
 }
 
 

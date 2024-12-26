@@ -4,6 +4,7 @@
 
 #include "sdsl_suffixtree.hpp"
 #include "waveletmatrix.hpp"
+#include "lz78.hpp"
 
 int compute_lz77_length(NormalSuffixTree& st, std::vector<int>& sa){
   int n = st.text.size();
@@ -30,6 +31,71 @@ int compute_lz77_length(NormalSuffixTree& st, std::vector<int>& sa){
     }
   }
   return k;
+}
+
+struct LZ78SlinkTrie{
+  std::vector<std::unordered_map<unsigned char, int>> lz_trie;
+  std::vector<int> slinks;
+  LZ78SlinkTrie(std::vector<std::pair<int, unsigned char>>& lz78_phrases) : lz_trie(lz78_phrases.size() + 1), slinks(lz78_phrases.size() + 1){
+    for(int i = 0; i < lz78_phrases.size(); ++i){
+      lz_trie[lz78_phrases[i].first + 1][lz78_phrases[i].second] = i + 1;
+    }
+    std::queue<int> que;
+    que.emplace(0);
+    while(!que.empty()){
+      auto x = que.front();
+      que.pop();
+      for(auto [c, y] : lz_trie[x]){
+        if(x == 0){
+          slinks[y] = 0;
+        }
+        else{
+          int sl = slinks[x];
+          std::stack<int> stack;
+          while(sl != 0 && !lz_trie[sl].contains(c)){
+            stack.emplace(sl);
+            sl = slinks[sl];
+          }
+          if(sl == 0 && !lz_trie[sl].contains(c)){
+            lz_trie[sl][c] = lz_trie.size();
+            lz_trie.emplace_back();
+            slinks.emplace_back(0);
+          }
+          while(!stack.empty()){
+            int sl_next = stack.top();
+            stack.pop();
+            lz_trie[sl_next][c] = lz_trie.size();
+            lz_trie.emplace_back();
+            slinks.emplace_back(lz_trie[sl].at(c));
+            sl = sl_next;
+          }
+          slinks[y] = lz_trie[slinks[x]].at(c);
+        }
+        que.emplace(y);
+      }
+    }
+  }
+  std::vector<int> reinsert_text(std::string_view text){
+    std::vector<int> phrases;
+    int i = 0;
+    while(i != text.size()){
+      int node = 0;
+      for(;i != text.size() && lz_trie[node].contains(text[i]); ++i){
+        node = lz_trie[node][text[i]];
+      }
+      phrases.emplace_back(node);
+    }
+    return phrases;
+  }
+};
+std::pair<int,int> compute_lz78_slink_trie_size(NormalSuffixTree& st){
+  auto random_access_func = [&](int i){ return st.text[i]; };
+  auto sa_range_func = [&](int start_pos, int target_depth){
+    return st.sa_range(start_pos, target_depth);
+  };
+  auto lz78_phrases = compute_lz78(st.text.size(), 0, st.text.size(), random_access_func, sa_range_func).first;
+  auto slink_trie = LZ78SlinkTrie(lz78_phrases);
+  return std::make_pair(slink_trie.lz_trie.size(), slink_trie.reinsert_text(st.text).size());
 }
 
 int compute_lz78_length(NormalSuffixTree& st){
