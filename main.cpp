@@ -9,6 +9,7 @@
 #include "includes/suffix_array.hpp"
 #include "includes/lz78.hpp"
 #include "includes/sdsl_suffixtree.hpp"
+#include "includes/bwt_index.hpp"
 #include "includes/utils.hpp"
 
 
@@ -273,6 +274,44 @@ struct BenchMarkResultForCompressionSuffixTree{
   }
 };
 
+struct BenchMarkResultForCompressionRLBWT{
+  std::string filename;
+  int text_length;
+  int num_iter, substr_length;
+  std::size_t memory_usage_rlbwt;
+  std::vector<std::size_t> elapsed_times;
+  void output_clog(){
+    std::clog << std::endl;
+    std::clog << "filename                : " << filename << std::endl;
+    std::clog << "text length             : " << text_length << std::endl;
+    std::clog << "number of iterations    : " << num_iter << std::endl;
+    std::clog << "length of substring     : " << substr_length << std::endl;
+    std::clog << "memory usage            : " << memory_usage_rlbwt << " [bytes]" << std::endl;
+    std::clog << "average elapsed time    : " << std::accumulate(elapsed_times.begin(), elapsed_times.end(), 0.0l) / elapsed_times.size() << " [microseconds]" << std::endl;
+  }
+  static void output_csv_header(std::ofstream& of){
+    of << "filename" << ",";
+    of << "text_length" << ",";
+    of << "num_iter" << ",";
+    of << "substr_length" << ",";
+    of << "memory_usage_rlbwt" << ",";
+    of << "elapsed_time_lz78" << std::endl;
+  }
+  void output_csv(std::ofstream& of){
+    of << std::fixed;
+    of << filename << ",";
+    of << text_length << ",";
+    of << num_iter << ",";
+    of << substr_length << ",";
+    of << memory_usage_rlbwt << ",";
+    of << "\"[" << elapsed_times[0];
+    for(int i = 1; i < elapsed_times.size(); ++i){
+      of << "," << elapsed_times[i];
+    }
+    of << "]\"" << std::endl;
+  }
+};
+
 void benchmark_construction_time(std::string filename, size_t length, std::ofstream& of){
   auto text = load_file("./data/" + filename, length);
 
@@ -386,6 +425,61 @@ void benchmark_compression_suffixtree(std::string filename, size_t length, int n
   }
 }
 
+void benchmark_compression_rlbwt(std::string filename, size_t length, int num_iter, std::ofstream& of){
+  auto text = load_file("./data/" + filename, length);
+
+  int n = text.length();
+
+  sdsl::memory_monitor::start();
+
+  RLBWTBasedIndex index(text);
+
+  text.clear();
+
+  auto random_access_func = [&](int i){ return index.text_index->operator[](i); };
+  auto sa_range_func = [&](int start_pos, int target_depth){
+    int isa = index.isa_index->operator[](start_pos);
+    int lb = index.lcp_index->find_prev_idx_lcp_less_than_or_equal_to_d(std::min(isa, n), target_depth - 1);
+    int rb = isa >= n ? -1 : index.lcp_index->find_next_idx_lcp_less_than_or_equal_to_d(isa + 1, target_depth - 1);
+    if(lb != -1){
+      lb -= 2;
+    }
+    if(rb != -1){
+      rb -= 2;
+    }
+    else{
+      rb = n;
+    }
+    return std::make_pair(lb, rb + 1);
+  };
+
+  std::size_t memory_usage = index.memory_usage();
+
+  std::random_device seed;
+  std::mt19937 mt(seed());
+  for(int compress_length = 1 << 3; compress_length <= n; compress_length <<= 1){
+    std::vector<std::size_t> elapsed_times;
+    for(int k = 0; k < num_iter; ++k){
+      int start_index = mt() % (n - compress_length + 1);
+      int end_index = start_index + compress_length;
+      auto time_st = std::chrono::high_resolution_clock::now();
+      compute_lz78(n, start_index, end_index, random_access_func, sa_range_func).second;
+      auto time_en = std::chrono::high_resolution_clock::now();
+      auto computation_time = std::chrono::duration_cast<std::chrono::microseconds>(time_en - time_st).count();
+      elapsed_times.emplace_back(computation_time);
+    }
+    BenchMarkResultForCompressionRLBWT res;
+    res.filename = filename;
+    res.num_iter = num_iter;
+    res.text_length = n;
+    res.substr_length = compress_length;
+    res.memory_usage_rlbwt = memory_usage;
+    res.elapsed_times = elapsed_times;
+    res.output_clog();
+    res.output_csv(of);
+  }
+}
+
 
 void benchmark_compression(std::string filename, size_t length, int num_iter, std::ofstream& of){
   auto text = load_file("./data/" + filename, length);
@@ -446,13 +540,20 @@ void write_lz78_length_array(std::string filename, int length, int num_iter){
   }
 }
 
+#include "includes/bwt_index.hpp"
+void test_bwt_index(std::string filename, int length){
+  auto text = load_file("./data/" + filename, length);
+  std::clog << "constructing BWT index..." << std::endl;
+  build_rlbwt_index(text);
+}
 
 int main(int argc, char** argv) {
+
 
 #ifndef DEBUG
 //  std::string err_msg = "expected args: \n    \"construct {filename} {text_length}\"\n or \"compress_cdawg {filename} {text_length}\"\n or \"compress_nst {filename} {text_length}\"\n or \"compress_sst {filename} {text_length}\"";
 
-  std::string msg = "expected args: \n    \"construct {filename} {text_length}\"\n or \"construct_time {filename} {text_length}\"\n or \"compress_cdawg {filename} {text_length}\"\n or \"compress_st {filename} {text_length}\"\n or \"compression_measure {filename} {text_length}\"\n or \"lz78_length_array {filename} {text_length}\"";
+  std::string msg = "expected args: \n    \"construct {filename} {text_length}\"\n or \"construct_time {filename} {text_length}\"\n or \"compress_cdawg {filename} {text_length}\"\n or \"compress_st {filename} {text_length}\"\n or \"compress_rlbwt {filename} {text_length}\"\n or \"compression_measure {filename} {text_length}\"\n or \"lz78_length_array {filename} {text_length}\"";
 
   if(argc == 4){
     if(strcmp(argv[1], "construct") == 0){
@@ -498,6 +599,17 @@ int main(int argc, char** argv) {
         BenchMarkResultForCompressionSuffixTree::output_csv_header(of);
       }
       benchmark_compression_suffixtree<NormalSuffixTree>(filename, n, 10, of);
+    }
+    else if(strcmp(argv[1], "compress_rlbwt") == 0){
+      std::string output_file = "./results/output_compress_rlbwt.csv";
+      bool exists = std::filesystem::exists(output_file);
+      std::string filename = argv[2];
+      int n = atoi(argv[3]);
+      std::ofstream of(output_file, std::ios_base::out | std::ios_base::app);
+      if(!exists){
+        BenchMarkResultForCompressionSuffixTree::output_csv_header(of);
+      }
+      benchmark_compression_rlbwt(filename, n, 10, of);
     }
     else if(strcmp(argv[1], "compression_measure") == 0){
       std::string filename = argv[2];
