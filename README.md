@@ -29,4 +29,5 @@ To run only the compression or construction benchmarks, use the corresponding sc
 ./run_benchmark_construction.sh {path_to_executable} {filename}
 ./run_benchmark_compression_cdawg.sh {path_to_executable} {filename}
 ./run_benchmark_compression_suffixtree.sh {path_to_executable} {filename}
+./run_benchmark_compression_rlbwt.sh {path_to_executable} {filename}
 ```
